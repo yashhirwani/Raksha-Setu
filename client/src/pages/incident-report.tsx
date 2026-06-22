@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, UserX, AlertTriangle, Car, VenetianMask, Camera, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useI18n } from "@/i18n";
 
 interface IncidentReportProps {
   touristId: string;
@@ -26,28 +27,29 @@ interface IncidentForm {
 }
 
 const incidentTypes = [
-  { id: "medical", label: "Medical Emergency", icon: UserX, color: "destructive" },
-  { id: "safety", label: "Safety Concern", icon: AlertTriangle, color: "accent" },
-  { id: "accident", label: "Accident", icon: Car, color: "destructive" },
-  { id: "suspicious", label: "Suspicious Activity", icon: VenetianMask, color: "muted" },
+  { id: "medical", labelKey: "incident_medical", icon: UserX, color: "destructive" },
+  { id: "safety", labelKey: "incident_safety", icon: AlertTriangle, color: "accent" },
+  { id: "accident", labelKey: "incident_accident", icon: Car, color: "destructive" },
+  { id: "suspicious", labelKey: "incident_suspicious", icon: VenetianMask, color: "muted" },
 ];
 
 const priorityLevels = [
-  { id: "low", label: "Low", color: "secondary" },
-  { id: "medium", label: "Medium", color: "accent" },
-  { id: "high", label: "High", color: "destructive" },
+  { id: "low", labelKey: "priority_low", color: "secondary" },
+  { id: "medium", labelKey: "priority_medium", color: "accent" },
+  { id: "high", labelKey: "priority_high", color: "destructive" },
 ];
 
 export default function IncidentReport({ touristId }: IncidentReportProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<IncidentForm>({
     type: "",
-    location: "Times Square, NYC",
-    latitude: "40.7589",
-    longitude: "-73.9851",
+    location: "",
+    latitude: undefined,
+    longitude: undefined,
     description: "",
     priority: "low",
     isAnonymous: false,
@@ -111,21 +113,54 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
             latitude: position.coords.latitude.toString(),
             longitude: position.coords.longitude.toString(),
           }));
-          toast({
-            title: "Location Updated",
-            description: "Your current location has been detected",
-          });
+          // try to reverse-geocode a friendly address (browser-free approach: use a simple geocoding API if available)
+          try {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            // update immediate coords
+            setFormData(prev => ({ ...prev, latitude: String(lat), longitude: String(lon) }));
+            // attempt to call a public reverse-geocoding service (no key) - fallback is just coordinates
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`).then(r => r.json()).then((data) => {
+              const display = data?.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+              setFormData(prev => ({ ...prev, location: display }));
+              toast({ title: t('success'), description: t('auto_detected_location') });
+            }).catch(() => {
+              setFormData(prev => ({ ...prev, location: `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}` }));
+              toast({ title: t('success'), description: t('auto_detected_location') });
+            });
+          } catch (e) {
+            setFormData(prev => ({ ...prev, location: `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}` }));
+            toast({ title: t('success'), description: t('auto_detected_location') });
+          }
         },
         () => {
           toast({
-            title: "Location Error",
-            description: "Unable to detect location. Using default.",
+          title: t('error'),
+          description: t('error'),
             variant: "destructive",
           });
         }
       );
     }
   };
+
+  // Auto-detect location when component mounts to pre-fill the form
+  useEffect(() => {
+    if (navigator && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        setFormData(prev => ({ ...prev, latitude: String(lat), longitude: String(lon) }));
+        // reverse geocode to user-friendly address in background
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`).then(r => r.json()).then((data) => {
+          const display = data?.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+          setFormData(prev => ({ ...prev, location: display }));
+        }).catch(() => {
+          setFormData(prev => ({ ...prev, location: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
+        });
+      }, () => {} , { enableHighAccuracy: true, timeout: 5000 });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen pb-20">
@@ -139,7 +174,7 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
           >
             <ArrowLeft size={20} />
           </Button>
-          <h1 className="text-lg font-semibold text-foreground">Report Incident</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('report_incident')}</h1>
           <div></div>
         </div>
       </div>
@@ -148,7 +183,7 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Incident Type */}
           <div>
-            <Label className="block text-sm font-medium text-foreground mb-3">Incident Type</Label>
+            <Label className="block text-sm font-medium text-foreground mb-3">{t('incident_type')}</Label>
             <div className="grid grid-cols-2 gap-3">
               {incidentTypes.map((type) => {
                 const Icon = type.icon;
@@ -167,7 +202,7 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
                     data-testid={`incident-type-${type.id}`}
                   >
                     <Icon className={`mb-2 block ${type.color === 'destructive' ? 'text-destructive' : type.color === 'accent' ? 'text-accent' : 'text-muted-foreground'}`} size={20} />
-                    <span className="text-sm font-medium">{type.label}</span>
+                    <span className="text-sm font-medium">{t(type.labelKey)}</span>
                   </button>
                 );
               })}
@@ -176,12 +211,12 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
 
           {/* Location */}
           <div>
-            <Label htmlFor="location" className="block text-sm font-medium text-foreground mb-2">Location</Label>
+            <Label htmlFor="location" className="block text-sm font-medium text-foreground mb-2">{t('location_label')}</Label>
             <div className="flex space-x-2">
-              <Input
+                <Input
                 id="location"
                 type="text"
-                placeholder="Auto-detected location"
+                placeholder={t('auto_detected_location')}
                 value={formData.location}
                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                 className="flex-1"
@@ -200,10 +235,10 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
 
           {/* Description */}
           <div>
-            <Label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">Description</Label>
+            <Label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">{t('description_label')}</Label>
             <Textarea
               id="description"
-              placeholder="Describe what happened..."
+              placeholder={t('description_placeholder')}
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               className="h-24 resize-none"
@@ -213,18 +248,18 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
 
           {/* Photo Upload */}
           <div>
-            <Label className="block text-sm font-medium text-foreground mb-2">Photo Evidence (Optional)</Label>
+            <Label className="block text-sm font-medium text-foreground mb-2">{t('photo_evidence')}</Label>
             <Card className="border-2 border-dashed border-border hover:border-muted-foreground transition-colors cursor-pointer">
               <CardContent className="p-6 text-center">
                 <Camera className="text-2xl text-muted-foreground mb-2 mx-auto" size={32} />
-                <p className="text-sm text-muted-foreground">Tap to add photo</p>
+                <p className="text-sm text-muted-foreground">{t('photo_evidence')}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Priority Level */}
           <div>
-            <Label className="block text-sm font-medium text-foreground mb-3">Priority Level</Label>
+            <Label className="block text-sm font-medium text-foreground mb-3">{t('priority_level')}</Label>
             <div className="flex space-x-2">
               {priorityLevels.map((level) => {
                 const isSelected = formData.priority === level.id;
@@ -245,7 +280,7 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
                     }`}
                     data-testid={`priority-${level.id}`}
                   >
-                    {level.label}
+                    {t(level.labelKey)}
                   </button>
                 );
               })}
@@ -260,7 +295,7 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isAnonymous: !!checked }))}
               data-testid="checkbox-anonymous"
             />
-            <Label htmlFor="anonymous" className="text-sm text-foreground">Submit anonymously</Label>
+                <Label htmlFor="anonymous" className="text-sm text-foreground">{t('submit_anonymously')}</Label>
           </div>
 
           {/* Submit Button */}
@@ -270,7 +305,7 @@ export default function IncidentReport({ touristId }: IncidentReportProps) {
             className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             data-testid="button-submit-report"
           >
-            {submitIncidentMutation.isPending ? "Submitting..." : "Submit Report"}
+            {submitIncidentMutation.isPending ? t('submit_report') : t('submit_report')}
           </Button>
         </form>
       </div>

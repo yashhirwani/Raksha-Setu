@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeTravel - Tourist Safety Monitoring System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)", 
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            }
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --radius: 0.5rem;
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222 84% 5%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222 84% 5%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222 84% 5%);
+            --primary: hsl(221 83% 53%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(158 64% 52%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215 16% 47%);
+            --accent: hsl(25 95% 53%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 85% 60%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(221 83% 53%);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+        }
+        
+        .app-container {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: hsl(var(--background));
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .screen {
+            display: none;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: hsl(var(--card));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            background: hsl(var(--card));
+            border-top: 1px solid hsl(var(--border));
+            padding: 12px 0;
+            z-index: 50;
+        }
+        
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav-item.active {
+            color: hsl(var(--primary));
+        }
+        
+        .safety-zone {
+            border: 2px solid hsl(var(--secondary));
+            border-radius: 50%;
+            background: hsla(158, 64%, 52%, 0.1);
+            position: absolute;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.6; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        .incident-marker {
+            background: hsl(var(--destructive));
+            border-radius: 50%;
+            animation: bounce 1s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .floating-button {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 40;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="flex items-center space-x-1">
+                <div class="w-1 h-1 bg-foreground rounded-full"></div>
+                <div class="w-1 h-1 bg-foreground rounded-full"></div>
+                <div class="w-1 h-1 bg-muted-foreground rounded-full"></div>
+            </div>
+            <div class="text-sm font-medium text-foreground">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fas fa-signal text-xs"></i>
+                <i class="fas fa-wifi text-xs"></i>
+                <div class="w-6 h-3 border border-foreground rounded-sm">
+                    <div class="w-4 h-2 bg-secondary rounded-sm m-0.5"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Screen -->
+        <!-- @COMPONENT: RegistrationScreen [handles tourist onboarding and digital ID creation] -->
+        <div id="registration" class="screen active">
+            <div class="bg-gradient-to-b from-primary to-secondary text-primary-foreground p-6 pb-12">
+                <div class="text-center mt-8">
+                    <div class="w-16 h-16 bg-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shield-alt text-2xl text-primary"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold mb-2">SafeTravel</h1>
+                    <p class="text-primary-foreground/80 text-sm">Your trusted companion for safe travel</p>
+                </div>
+            </div>
+            
+            <div class="px-6 py-6 -mt-8 bg-card rounded-t-3xl relative z-10">
+                <h2 class="text-xl font-semibold text-card-foreground mb-6">Create Your Digital Travel ID</h2>
+                
+                <form class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-card-foreground mb-2">Full Name</label>
+                        <input type="text" placeholder="Enter your full name" data-bind="tourist.name"
+                               class="w-full p-3 border border-input rounded-lg bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-card-foreground mb-2">Passport/ID Number</label>
+                        <input type="text" placeholder="Enter ID number" data-bind="tourist.idNumber"
+                               class="w-full p-3 border border-input rounded-lg bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-card-foreground mb-2">Nationality</label>
+                        <select data-bind="tourist.nationality" class="w-full p-3 border border-input rounded-lg bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                            <option>Select your country</option>
+                            <option data-mock="true">United States</option>
+                            <option data-mock="true">United Kingdom</option>
+                            <option data-mock="true">Canada</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-card-foreground mb-2">Emergency Contact</label>
+                        <input type="tel" placeholder="+1 (555) 123-4567" data-bind="tourist.emergencyContact"
+                               class="w-full p-3 border border-input rounded-lg bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                    </div>
+                    
+                    <div class="bg-muted p-4 rounded-lg">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-info-circle text-primary mt-1"></i>
+                            <div>
+                                <p class="text-sm text-muted-foreground">
+                                    Your digital ID will be secured using blockchain technology and comply with international privacy standards.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" data-event="click:generateDigitalId" data-implementation="Should generate blockchain-based digital ID"
+                            onclick="showScreen('digitalId')"
+                            class="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                        Generate Digital ID
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: RegistrationScreen -->
+
+        <!-- Digital ID Screen -->
+        <!-- @COMPONENT: DigitalIdScreen [displays generated blockchain-based tourist ID] -->
+        <div id="digitalId" class="screen">
+            <div class="bg-gradient-to-br from-primary via-secondary to-accent p-6 text-primary-foreground">
+                <div class="flex items-center justify-between mb-8">
+                    <button onclick="showScreen('registration')" class="p-2">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold">Digital Travel ID</h1>
+                    <div></div>
+                </div>
+                
+                <div class="bg-card/95 backdrop-blur-sm rounded-2xl p-6 text-card-foreground">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold" data-bind="tourist.name">John Anderson</h3>
+                                <p class="text-sm text-muted-foreground">Tourist ID Verified</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Verified</span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-xs text-muted-foreground">ID Number</p>
+                            <p class="font-medium text-sm" data-bind="tourist.idNumber">P123456789</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted-foreground">Nationality</p>
+                            <p class="font-medium text-sm" data-bind="tourist.nationality">United States</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted-foreground">Issue Date</p>
+                            <p class="font-medium text-sm">Dec 15, 2024</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted-foreground">Expires</p>
+                            <p class="font-medium text-sm">Dec 15, 2025</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-border pt-4">
+                        <div class="flex items-center justify-center">
+                            <div class="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
+                                <!-- QR Code placeholder - would contain blockchain hash -->
+                                <div class="text-center">
+                                    <i class="fas fa-qrcode text-3xl text-muted-foreground mb-2"></i>
+                                    <p class="text-xs text-muted-foreground">Blockchain ID</p>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-muted-foreground text-center mt-2">
+                            Hash: 0x1a2b3c... <!-- @FUNCTIONALITY: Real blockchain hash -->
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <button onclick="showScreen('dashboard')"
+                        class="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium">
+                    Continue to Dashboard
+                </button>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: DigitalIdScreen -->
+
+        <!-- Main Dashboard Screen -->
+        <!-- @COMPONENT: DashboardScreen [main app interface with safety features] -->
+        <div id="dashboard" class="screen">
+            <!-- Header -->
+            <div class="bg-card border-b border-border p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                            <span class="font-medium text-sm" data-bind="tourist.initials">JA</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-card-foreground">Welcome back</p>
+                            <p class="text-sm text-muted-foreground" data-bind="tourist.name">John Anderson</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-secondary rounded-full"></div>
+                        <span class="text-xs text-muted-foreground">Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Safety Status -->
+            <div class="p-4">
+                <div class="bg-secondary/10 border border-secondary/20 rounded-xl p-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center">
+                            <i class="fas fa-shield-check text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-secondary">You're in a Safe Zone</p>
+                            <p class="text-sm text-muted-foreground">Downtown Tourist District - Low Risk</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="px-4 mb-6">
+                <h2 class="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="showScreen('map')" class="bg-card border border-border rounded-xl p-4 text-center hover:bg-muted transition-colors">
+                        <div class="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <i class="fas fa-map-marked-alt text-lg"></i>
+                        </div>
+                        <p class="font-medium text-card-foreground">Safety Map</p>
+                        <p class="text-xs text-muted-foreground">View nearby zones</p>
+                    </button>
+                    
+                    <button onclick="showScreen('report')" class="bg-card border border-border rounded-xl p-4 text-center hover:bg-muted transition-colors">
+                        <div class="w-12 h-12 bg-accent/10 text-accent rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <i class="fas fa-exclamation-triangle text-lg"></i>
+                        </div>
+                        <p class="font-medium text-card-foreground">Report Incident</p>
+                        <p class="text-xs text-muted-foreground">Quick reporting</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="px-4 mb-6">
+                <h2 class="text-lg font-semibold text-foreground mb-4">Safety Alerts</h2>
+                
+                <!-- @MAP: alerts.map(alert => ( -->
+                <div class="bg-card border border-border rounded-xl p-4 mb-3">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-accent/10 text-accent rounded-full flex items-center justify-center mt-1">
+                            <i class="fas fa-exclamation text-sm"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-card-foreground text-sm" data-mock="true">High Traffic Advisory</p>
+                            <p class="text-xs text-muted-foreground" data-mock="true">Times Square area experiencing heavy crowds. Consider alternate routes.</p>
+                            <p class="text-xs text-muted-foreground mt-1">2 hours ago</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-card border border-border rounded-xl p-4 mb-3">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mt-1">
+                            <i class="fas fa-info text-sm"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-card-foreground text-sm" data-mock="true">Weather Update</p>
+                            <p class="text-xs text-muted-foreground" data-mock="true">Light rain expected this evening. Carry an umbrella if heading out.</p>
+                            <p class="text-xs text-muted-foreground mt-1">5 hours ago</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+            </div>
+
+            <!-- AI Recommendations -->
+            <div class="px-4">
+                <h2 class="text-lg font-semibold text-foreground mb-4">AI Safety Recommendations</h2>
+                <div class="bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-xl p-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mt-1">
+                            <i class="fas fa-brain text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-card-foreground text-sm mb-2">Smart Recommendation</p>
+                            <p class="text-sm text-muted-foreground" data-mock="true">
+                                Based on your location and recent incidents, we recommend staying in well-lit areas after 8 PM and using main streets for navigation.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: DashboardScreen -->
+
+        <!-- Map Screen -->
+        <!-- @COMPONENT: MapScreen [interactive map with geo-fencing and safety zones] -->
+        <div id="map" class="screen">
+            <div class="bg-card border-b border-border p-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showScreen('dashboard')" class="p-2">
+                        <i class="fas fa-arrow-left text-foreground"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold text-foreground">Safety Map</h1>
+                    <button class="p-2">
+                        <i class="fas fa-layer-group text-foreground"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="relative h-96 bg-muted">
+                <!-- Map Background -->
+                <!-- Modern city street map with green spaces and landmarks -->
+                <img src="https://images.unsplash.com/photo-1524813686514-a57563d77965?ixlib=rb-4.0.3&auto=format&fit=crop&w=430&h=384" 
+                     alt="City map view" class="w-full h-full object-cover">
+                
+                <!-- Safety Zones Overlay -->
+                <div class="safety-zone w-20 h-20 absolute top-16 left-12"></div>
+                <div class="safety-zone w-24 h-24 absolute top-32 right-16"></div>
+                <div class="safety-zone w-16 h-16 absolute bottom-20 left-20"></div>
+                
+                <!-- Current Location -->
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div class="w-4 h-4 bg-primary rounded-full border-4 border-primary-foreground shadow-lg relative">
+                        <div class="w-8 h-8 border-2 border-primary rounded-full absolute -top-2 -left-2 animate-ping opacity-50"></div>
+                    </div>
+                </div>
+                
+                <!-- Incident Markers -->
+                <div class="incident-marker w-3 h-3 absolute top-20 right-20"></div>
+                <div class="incident-marker w-3 h-3 absolute bottom-32 right-12"></div>
+                
+                <!-- Location Info Overlay -->
+                <div class="absolute bottom-4 left-4 right-4">
+                    <div class="bg-card/95 backdrop-blur-sm rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-card-foreground">Current Location</p>
+                                <p class="text-sm text-muted-foreground" data-mock="true">Downtown Tourist District</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="flex items-center space-x-1 text-secondary">
+                                    <i class="fas fa-shield-check text-sm"></i>
+                                    <span class="text-sm font-medium">Safe</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Legend -->
+            <div class="p-4">
+                <h3 class="font-semibold text-foreground mb-3">Map Legend</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-4 h-4 bg-secondary rounded-full"></div>
+                        <span class="text-sm text-foreground">Safe Zones</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-4 h-4 bg-destructive rounded-full"></div>
+                        <span class="text-sm text-foreground">Incident Locations</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-4 h-4 bg-primary rounded-full border-2 border-primary-foreground"></div>
+                        <span class="text-sm text-foreground">Your Location</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Emergency Button -->
+            <button class="floating-button w-16 h-16 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                    data-event="click:triggerEmergency" data-implementation="Should trigger emergency protocols">
+                <i class="fas fa-phone text-xl"></i>
+            </button>
+        </div>
+        <!-- @END_COMPONENT: MapScreen -->
+
+        <!-- Incident Report Screen -->
+        <!-- @COMPONENT: IncidentReportScreen [form for reporting safety incidents] -->
+        <div id="report" class="screen">
+            <div class="bg-card border-b border-border p-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showScreen('dashboard')" class="p-2">
+                        <i class="fas fa-arrow-left text-foreground"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold text-foreground">Report Incident</h1>
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <form class="space-y-6">
+                    <!-- Incident Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-3">Incident Type</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" class="incident-type-btn border-2 border-border hover:border-destructive rounded-lg p-3 text-left transition-colors"
+                                    data-event="click:selectIncidentType">
+                                <i class="fas fa-user-injured text-destructive mb-2 block"></i>
+                                <span class="text-sm font-medium">Medical Emergency</span>
+                            </button>
+                            <button type="button" class="incident-type-btn border-2 border-border hover:border-destructive rounded-lg p-3 text-left transition-colors">
+                                <i class="fas fa-exclamation-triangle text-accent mb-2 block"></i>
+                                <span class="text-sm font-medium">Safety Concern</span>
+                            </button>
+                            <button type="button" class="incident-type-btn border-2 border-border hover:border-destructive rounded-lg p-3 text-left transition-colors">
+                                <i class="fas fa-car-crash text-destructive mb-2 block"></i>
+                                <span class="text-sm font-medium">Accident</span>
+                            </button>
+                            <button type="button" class="incident-type-btn border-2 border-border hover:border-destructive rounded-lg p-3 text-left transition-colors">
+                                <i class="fas fa-mask text-muted-foreground mb-2 block"></i>
+                                <span class="text-sm font-medium">Suspicious Activity</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Location -->
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Location</label>
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Auto-detected location" value="Times Square, NYC" 
+                                   data-bind="incident.location" disabled
+                                   class="flex-1 p-3 border border-input rounded-lg bg-muted text-muted-foreground">
+                            <button type="button" class="px-4 py-3 border border-input rounded-lg hover:bg-muted transition-colors">
+                                <i class="fas fa-crosshairs text-muted-foreground"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Description</label>
+                        <textarea placeholder="Describe what happened..." data-bind="incident.description"
+                                  class="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none focus:ring-2 focus:ring-ring focus:border-transparent"></textarea>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Photo Evidence (Optional)</label>
+                        <div class="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-muted-foreground transition-colors cursor-pointer"
+                             data-implementation="File upload component for incident photos">
+                            <i class="fas fa-camera text-2xl text-muted-foreground mb-2"></i>
+                            <p class="text-sm text-muted-foreground">Tap to add photo</p>
+                        </div>
+                    </div>
+
+                    <!-- Priority Level -->
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-3">Priority Level</label>
+                        <div class="flex space-x-2">
+                            <button type="button" class="flex-1 p-3 border-2 border-secondary bg-secondary/10 text-secondary rounded-lg text-sm font-medium">
+                                Low
+                            </button>
+                            <button type="button" class="flex-1 p-3 border-2 border-border text-muted-foreground rounded-lg text-sm font-medium hover:border-accent">
+                                Medium
+                            </button>
+                            <button type="button" class="flex-1 p-3 border-2 border-border text-muted-foreground rounded-lg text-sm font-medium hover:border-destructive">
+                                High
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Anonymous Option -->
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="anonymous" class="w-4 h-4 text-primary border-border rounded focus:ring-ring">
+                        <label for="anonymous" class="text-sm text-foreground">Submit anonymously</label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" data-event="click:submitIncident" data-implementation="Should validate and submit incident report"
+                            class="w-full bg-destructive text-destructive-foreground py-3 rounded-lg font-medium hover:bg-destructive/90 transition-colors">
+                        Submit Report
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: IncidentReportScreen -->
+
+        <!-- Profile Screen -->
+        <!-- @COMPONENT: ProfileScreen [user profile and settings management] -->
+        <div id="profile" class="screen">
+            <div class="bg-card border-b border-border p-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showScreen('dashboard')" class="p-2">
+                        <i class="fas fa-arrow-left text-foreground"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold text-foreground">Profile</h1>
+                    <button class="p-2">
+                        <i class="fas fa-edit text-muted-foreground"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Header -->
+            <div class="bg-gradient-to-r from-primary to-secondary p-6 text-primary-foreground">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary-foreground text-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-2xl font-bold" data-bind="tourist.initials">JA</span>
+                    </div>
+                    <h2 class="text-xl font-semibold" data-bind="tourist.name">John Anderson</h2>
+                    <p class="text-primary-foreground/80 text-sm">Digital ID: ST-2024-001</p>
+                </div>
+            </div>
+
+            <!-- Profile Details -->
+            <div class="p-4 space-y-4">
+                <div class="bg-card border border-border rounded-xl p-4">
+                    <h3 class="font-semibold text-foreground mb-3">Personal Information</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted-foreground">Full Name</span>
+                            <span class="text-sm text-foreground" data-bind="tourist.name">John Anderson</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted-foreground">Nationality</span>
+                            <span class="text-sm text-foreground" data-bind="tourist.nationality">United States</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted-foreground">ID Number</span>
+                            <span class="text-sm text-foreground" data-bind="tourist.idNumber">P123456789</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-card border border-border rounded-xl p-4">
+                    <h3 class="font-semibold text-foreground mb-3">Emergency Contacts</h3>
+                    <div class="space-y-3">
+                        <!-- @MAP: emergencyContacts.map(contact => ( -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-sm text-muted-foreground"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-foreground" data-mock="true">Sarah Anderson</p>
+                                    <p class="text-xs text-muted-foreground" data-mock="true">+1 (555) 123-4567</p>
+                                </div>
+                            </div>
+                            <span class="text-xs bg-secondary/10 text-secondary px-2 py-1 rounded-full">Primary</span>
+                        </div>
+                        <!-- @END_MAP )) -->
+                        
+                        <button class="w-full border-2 border-dashed border-border rounded-lg p-3 text-center text-muted-foreground hover:border-muted-foreground transition-colors">
+                            <i class="fas fa-plus text-sm mr-2"></i>
+                            Add Emergency Contact
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-card border border-border rounded-xl p-4">
+                    <h3 class="font-semibold text-foreground mb-3">Safety Preferences</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-foreground">Location Sharing</span>
+                            <div class="w-12 h-6 bg-secondary rounded-full relative">
+                                <div class="w-5 h-5 bg-secondary-foreground rounded-full absolute top-0.5 right-0.5"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-foreground">Emergency Alerts</span>
+                            <div class="w-12 h-6 bg-secondary rounded-full relative">
+                                <div class="w-5 h-5 bg-secondary-foreground rounded-full absolute top-0.5 right-0.5"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-foreground">AI Recommendations</span>
+                            <div class="w-12 h-6 bg-border rounded-full relative">
+                                <div class="w-5 h-5 bg-muted-foreground rounded-full absolute top-0.5 left-0.5"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ProfileScreen -->
+
+        <!-- Authority Dashboard Screen -->
+        <!-- @COMPONENT: AuthorityDashboard [incident monitoring and response interface] -->
+        <div id="authority" class="screen">
+            <div class="bg-card border-b border-border p-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showScreen('dashboard')" class="p-2">
+                        <i class="fas fa-arrow-left text-foreground"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold text-foreground">Authority Dashboard</h1>
+                    <button class="p-2">
+                        <i class="fas fa-bell text-foreground"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="p-4 space-y-4">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-card border border-border rounded-xl p-3 text-center">
+                        <div class="text-xl font-bold text-foreground" data-mock="true">247</div>
+                        <div class="text-xs text-muted-foreground">Active Tourists</div>
+                    </div>
+                    <div class="bg-card border border-border rounded-xl p-3 text-center">
+                        <div class="text-xl font-bold text-secondary" data-mock="true">12</div>
+                        <div class="text-xs text-muted-foreground">Safe Zones</div>
+                    </div>
+                    <div class="bg-card border border-border rounded-xl p-3 text-center">
+                        <div class="text-xl font-bold text-accent" data-mock="true">3</div>
+                        <div class="text-xs text-muted-foreground">Active Alerts</div>
+                    </div>
+                </div>
+
+                <!-- Recent Incidents -->
+                <div class="bg-card border border-border rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-foreground">Recent Incidents</h3>
+                        <button class="text-xs text-primary">View All</button>
+                    </div>
+                    
+                    <!-- @MAP: incidents.map(incident => ( -->
+                    <div class="space-y-3">
+                        <div class="flex items-start space-x-3 p-3 bg-muted rounded-lg">
+                            <div class="w-8 h-8 bg-destructive/10 text-destructive rounded-full flex items-center justify-center">
+                                <i class="fas fa-exclamation text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-foreground" data-mock="true">Medical Emergency</p>
+                                <p class="text-xs text-muted-foreground" data-mock="true">Times Square, Tourist ID: ST-2024-089</p>
+                                <p class="text-xs text-muted-foreground">5 minutes ago</p>
+                            </div>
+                            <span class="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">HIGH</span>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3 p-3 bg-muted rounded-lg">
+                            <div class="w-8 h-8 bg-accent/10 text-accent rounded-full flex items-center justify-center">
+                                <i class="fas fa-triangle-exclamation text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-foreground" data-mock="true">Safety Concern</p>
+                                <p class="text-xs text-muted-foreground" data-mock="true">Central Park, Tourist ID: ST-2024-156</p>
+                                <p class="text-xs text-muted-foreground">12 minutes ago</p>
+                            </div>
+                            <span class="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">MED</span>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Response Actions -->
+                <div class="bg-card border border-border rounded-xl p-4">
+                    <h3 class="font-semibold text-foreground mb-4">Quick Response</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="flex flex-col items-center p-3 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors">
+                            <i class="fas fa-ambulance text-lg mb-1"></i>
+                            <span class="text-xs">Emergency</span>
+                        </button>
+                        <button class="flex flex-col items-center p-3 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors">
+                            <i class="fas fa-shield-alt text-lg mb-1"></i>
+                            <span class="text-xs">Security</span>
+                        </button>
+                        <button class="flex flex-col items-center p-3 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors">
+                            <i class="fas fa-broadcast-tower text-lg mb-1"></i>
+                            <span class="text-xs">Send Alert</span>
+                        </button>
+                        <button class="flex flex-col items-center p-3 bg-secondary/10 text-secondary rounded-lg hover:bg-secondary/20 transition-colors">
+                            <i class="fas fa-route text-lg mb-1"></i>
+                            <span class="text-xs">Redirect</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AuthorityDashboard -->
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="flex">
+                <div class="nav-item active" onclick="showScreen('dashboard')">
+                    <i class="fas fa-home text-lg mb-1 block"></i>
+                    <span class="text-xs">Home</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('map')">
+                    <i class="fas fa-map-marked-alt text-lg mb-1 block"></i>
+                    <span class="text-xs">Map</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('report')">
+                    <i class="fas fa-plus-circle text-lg mb-1 block"></i>
+                    <span class="text-xs">Report</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('authority')">
+                    <i class="fas fa-shield-alt text-lg mb-1 block"></i>
+                    <span class="text-xs">Alerts</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('profile')">
+                    <i class="fas fa-user text-lg mb-1 block"></i>
+                    <span class="text-xs">Profile</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Push Notification Mockup -->
+        <div id="notification" class="fixed top-16 left-4 right-4 bg-card border border-border rounded-xl p-4 shadow-lg transform -translate-y-full opacity-0 transition-all duration-300 z-50">
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 bg-accent text-accent-foreground rounded-full flex items-center justify-center">
+                    <i class="fas fa-bell text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-card-foreground text-sm">Safety Alert</p>
+                    <p class="text-xs text-muted-foreground" data-mock="true">High traffic reported in your area. Consider using alternate routes.</p>
+                </div>
+                <button onclick="hideNotification()" class="text-muted-foreground">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // Navigation System
+            function showScreen(screenId) {
+                // Hide all screens
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                
+                // Show selected screen  
+                document.getElementById(screenId).classList.add('active');
+                
+                // Update navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Set active nav item based on screen
+                const navMapping = {
+                    'dashboard': 0,
+                    'map': 1,
+                    'report': 2,
+                    'authority': 3,
+                    'profile': 4
+                };
+                
+                if (navMapping[screenId] !== undefined) {
+                    document.querySelectorAll('.nav-item')[navMapping[screenId]].classList.add('active');
+                }
+            }
+            
+            // Incident Type Selection
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.incident-type-btn')) {
+                    document.querySelectorAll('.incident-type-btn').forEach(btn => {
+                        btn.classList.remove('border-destructive', 'bg-destructive/10');
+                    });
+                    e.target.closest('.incident-type-btn').classList.add('border-destructive', 'bg-destructive/10');
+                }
+            });
+            
+            // Show notification after 3 seconds on dashboard
+            setTimeout(() => {
+                showNotification();
+            }, 3000);
+            
+            function showNotification() {
+                const notification = document.getElementById('notification');
+                notification.style.transform = 'translateY(0)';
+                notification.style.opacity = '1';
+                
+                // Auto hide after 4 seconds
+                setTimeout(() => {
+                    hideNotification();
+                }, 4000);
+            }
+            
+            window.hideNotification = function() {
+                const notification = document.getElementById('notification');
+                notification.style.transform = 'translateY(-100%)';
+                notification.style.opacity = '0';
+            }
+            
+            // Make showScreen globally available
+            window.showScreen = showScreen;
+            
+            // TODO: Implement business logic for:
+            // - Blockchain digital ID generation
+            // - Real-time geo-fencing monitoring  
+            // - Incident report submission and routing
+            // - Push notification system
+            // - Emergency contact integration
+            // - AI-powered safety recommendations
+            // - Location tracking and data persistence
+        })();
+    </script>
+</body>
+</html>

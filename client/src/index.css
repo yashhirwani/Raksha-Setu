@@ -108,6 +108,11 @@
   box-shadow: 0 0 20px rgba(0,0,0,0.1);
 }
 
+/* Keep UI inside the viewport on mobile: prevent horizontal overflow */
+.app-container {
+  overflow-x: hidden;
+}
+
 /* Status bar styles */
 .status-bar {
   height: 44px;
@@ -130,7 +135,66 @@
   background: hsl(var(--card));
   border-top: 1px solid hsl(var(--border));
   padding: 12px 0;
-  z-index: 50;
+  z-index: 40; /* lowered so floating map controls sit above */
+}
+
+/* Reserve extra bottom-safe area so content doesn't get hidden under nav */
+.app-content-safe-bottom {
+  padding-bottom: 96px; /* nav height (~56px) + CTA overlap space */
+}
+
+/* Active trip banner styles */
+.active-trip-banner {
+  position: fixed;
+  top: 52px; /* below the status bar */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 430px;
+  z-index: 65; /* sit above map controls */
+  padding: 0 12px;
+}
+
+.map-controls-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 430px; /* align with app container */
+  bottom: 86px; /* raise controls a bit more so they don't sit on the nav */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 12px;
+  box-sizing: border-box;
+  z-index: 60;
+  flex-wrap: wrap;
+}
+
+/* Dedicated Floating Action Button (FAB) positioning for panic button */
+.map-fab {
+  position: fixed;
+  right: 14px;
+  bottom: 110px; /* sit above the trip card */
+  z-index: 80;
+}
+
+/* Screen-reader only helper */
+.sr-only {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Focus-visible helper for keyboard users */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
 }
 
 .nav-item {
@@ -140,6 +204,61 @@
   cursor: pointer;
   transition: all 0.2s;
   color: hsl(var(--muted-foreground));
+}
+
+/* Primary CTA styling for middle nav item */
+.nav-item.cta {
+  position: relative;
+  transform: translateY(-10px); /* lift above the nav */
+  flex: 0 0 72px; /* fixed width so it's centered visually */
+  margin: 0 6px;
+  /* use destructive/accent color for alert CTA */
+  background: linear-gradient(180deg, hsl(var(--destructive)) 0%, hsl(var(--destructive-foreground)) 100%);
+  color: hsl(var(--destructive-foreground));
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(34, 41, 47, 0.12);
+  z-index: 70; /* above nav and many other elements */
+}
+
+.nav-item.cta .text-xs {
+  display: none; /* hide label to keep CTA compact on small screens */
+}
+
+/* Responsive: show label on wider screens and slightly enlarge the CTA */
+@media (min-width: 420px) {
+  .nav-item.cta {
+    transform: translateY(-12px);
+    width: 64px;
+    height: 64px;
+  }
+
+  .nav-item.cta .text-xs {
+    display: block;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+}
+
+/* Pulse animation for emphasis */
+@keyframes cta-pulse {
+  0% { box-shadow: 0 8px 18px rgba(34,41,47,0.12), 0 0 0 0 rgba(255,255,255,0.0); transform: scale(1); }
+  50% { box-shadow: 0 12px 22px rgba(34,41,47,0.14), 0 0 0 6px rgba(255,0,0,0.08); transform: scale(1.03); }
+  100% { box-shadow: 0 8px 18px rgba(34,41,47,0.12), 0 0 0 0 rgba(255,255,255,0.0); transform: scale(1); }
+}
+
+.nav-item.cta {
+  animation: cta-pulse 2.6s ease-in-out infinite;
+}
+
+/* Emergency countdown card */
+.emergency-countdown {
+  min-width: 300px;
+  max-width: 360px;
 }
 
 .nav-item.active {
@@ -180,9 +299,9 @@
 /* Floating button styles */
 .floating-button {
   position: fixed;
-  bottom: 100px;
+  bottom: 120px; /* moved up slightly to avoid bottom nav */
   right: 20px;
-  z-index: 40;
+  z-index: 70; /* ensure it's on top of nav and map controls */
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 

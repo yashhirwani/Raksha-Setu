@@ -70,9 +70,22 @@ export const safetyAlerts = pgTable("safety_alerts", {
   message: text("message").notNull(),
   type: text("type").notNull(), // warning, info, emergency
   area: text("area").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"),
+});
+
+// Trip itineraries and active trips
+export const trips = pgTable("trips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  touristId: varchar("tourist_id").notNull().references(() => tourists.id),
+  itineraryUrl: text("itinerary_url"),
+  startAt: timestamp("start_at"),
+  endAt: timestamp("end_at"),
+  isActive: boolean("is_active").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -110,6 +123,12 @@ export const insertSafetyAlertSchema = createInsertSchema(safetyAlerts).omit({
   isActive: true,
 });
 
+export const insertTripSchema = createInsertSchema(trips).omit({
+  id: true,
+  createdAt: true,
+  isActive: true,
+});
+
 // Types
 export type Tourist = typeof tourists.$inferSelect;
 export type InsertTourist = z.infer<typeof insertTouristSchema>;
@@ -128,3 +147,30 @@ export type InsertLocationHistory = z.infer<typeof insertLocationHistorySchema>;
 
 export type SafetyAlert = typeof safetyAlerts.$inferSelect;
 export type InsertSafetyAlert = z.infer<typeof insertSafetyAlertSchema>;
+
+export type Trip = typeof trips.$inferSelect;
+export type InsertTrip = z.infer<typeof insertTripSchema>;
+
+// Derived (non-table) types
+export interface TouristSafetyScore {
+  score: number; // 0 - 100
+  level: 'low' | 'moderate' | 'high';
+  factors: {
+    highRiskZoneVisits: number;
+    openIncidents: number;
+    activeAlerts: number;
+  };
+  recommendations: string[];
+  updatedAt: string; // ISO timestamp
+}
+
+// Chained safety event audit log entry (mini blockchain)
+export interface SafetyEventLogEntry {
+  id: string;               // uuid
+  type: 'incident' | 'alert';
+  refId: string;            // related incident or alert id
+  timestamp: string;        // ISO time of event recording
+  payloadHash: string;      // SHA-256 of canonical payload JSON
+  previousHash: string | null; // previous chain hash (null for first)
+  chainHash: string;        // SHA-256(previousHash + payloadHash)
+}

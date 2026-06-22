@@ -1,0 +1,32 @@
+[
+  {
+    "touristId": "demo-tourist-1",
+    "itineraryUrl": "/uploads/trips/1757926701254-sample-itinerary.txt",
+    "itineraryName": "Demo Trip",
+    "isActive": true,
+    "id": "91808674-7910-4146-99a5-0f03a010726c",
+    "createdAt": "2025-09-15T08:58:21.260Z",
+    "startAt": "2025-09-15T08:58:21.289Z",
+    "endAt": null
+  },
+  {
+    "touristId": "demo-tourist-1",
+    "itineraryUrl": "/uploads/trips/1757932512427-sample-itinerary.txt",
+    "itineraryName": "Demo Trip",
+    "isActive": false,
+    "id": "5603c528-2ad9-433f-b0ac-dd6ce639cd77",
+    "createdAt": "2025-09-15T10:35:12.437Z",
+    "startAt": "2025-09-15T10:35:12.464Z",
+    "endAt": "2025-09-15T10:38:03.660Z"
+  },
+  {
+    "touristId": "demo-tourist-1",
+    "itineraryUrl": "/uploads/trips/1757933800151-sample-itinerary.txt",
+    "itineraryName": "Demo Trip",
+    "isActive": true,
+    "id": "9176249f-9126-4674-9fe3-f9915ce6854a",
+    "createdAt": "2025-09-15T10:56:40.207Z",
+    "startAt": "2025-09-15T10:56:40.224Z",
+    "endAt": null
+  }
+]

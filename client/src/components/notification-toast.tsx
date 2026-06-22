@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Bell } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 interface Notification {
   id: string;
@@ -11,14 +12,15 @@ interface Notification {
 export default function NotificationToast() {
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     // Show demo notification after 3 seconds
     const timer = setTimeout(() => {
       showNotification({
         id: "demo-alert",
-        title: "Safety Alert",
-        message: "High traffic reported in your area. Consider using alternate routes.",
+        title: t('safety_alert_title'),
+        message: t('safety_alert_msg'),
         type: "warning"
       });
     }, 3000);

@@ -3,15 +3,17 @@ import { ArrowLeft, Bell, AlertTriangle, Ambulance, Shield, Radio, Route } from 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
+import { useI18n } from "@/i18n";
 
 export default function AuthorityDashboard() {
   const [, navigate] = useLocation();
+  const { t } = useI18n();
 
-  const { data: incidents } = useQuery({
+  const { data: incidents } = useQuery<any[]>({
     queryKey: ["/api/incidents"],
   });
 
-  const { data: safetyZones } = useQuery({
+  const { data: safetyZones } = useQuery<any[]>({
     queryKey: ["/api/safety-zones"],
   });
 
@@ -40,7 +42,7 @@ export default function AuthorityDashboard() {
           >
             <ArrowLeft size={20} />
           </Button>
-          <h1 className="text-lg font-semibold text-foreground">Authority Dashboard</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('authority_dashboard')}</h1>
           <Button variant="ghost" size="sm">
             <Bell size={20} className="text-foreground" />
           </Button>
@@ -55,7 +57,7 @@ export default function AuthorityDashboard() {
               <div className="text-xl font-bold text-foreground" data-testid="stat-active-tourists">
                 {stats.activeTourists}
               </div>
-              <div className="text-xs text-muted-foreground">Active Tourists</div>
+              <div className="text-xs text-muted-foreground">{t('active_tourists')}</div>
             </CardContent>
           </Card>
           <Card>
@@ -63,7 +65,7 @@ export default function AuthorityDashboard() {
               <div className="text-xl font-bold text-secondary" data-testid="stat-safe-zones">
                 {stats.safeZones}
               </div>
-              <div className="text-xs text-muted-foreground">Safe Zones</div>
+              <div className="text-xs text-muted-foreground">{t('safe_zones_label')}</div>
             </CardContent>
           </Card>
           <Card>
@@ -71,7 +73,7 @@ export default function AuthorityDashboard() {
               <div className="text-xl font-bold text-accent" data-testid="stat-active-alerts">
                 {stats.activeAlerts}
               </div>
-              <div className="text-xs text-muted-foreground">Active Alerts</div>
+              <div className="text-xs text-muted-foreground">{t('active_alerts')}</div>
             </CardContent>
           </Card>
         </div>
@@ -80,7 +82,7 @@ export default function AuthorityDashboard() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Recent Incidents</h3>
+              <h3 className="font-semibold text-foreground">{t('recent_incidents')}</h3>
               <Button variant="ghost" size="sm" className="text-xs text-primary">
                 View All
               </Button>
@@ -118,7 +120,7 @@ export default function AuthorityDashboard() {
               {recentIncidents.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <AlertTriangle size={48} className="mx-auto mb-2 opacity-20" />
-                  <p>No recent incidents</p>
+                  <p>{t('no_recent_incidents')}</p>
                 </div>
               )}
             </div>
@@ -128,7 +130,7 @@ export default function AuthorityDashboard() {
         {/* Response Actions */}
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-semibold text-foreground mb-4">Quick Response</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t('quick_response')}</h3>
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
@@ -137,7 +139,7 @@ export default function AuthorityDashboard() {
                 data-testid="button-emergency-response"
               >
                 <Ambulance size={20} className="mb-1" />
-                <span className="text-xs">Emergency</span>
+                <span className="text-xs">{t('emergency')}</span>
               </Button>
               <Button
                 variant="outline"
@@ -145,8 +147,8 @@ export default function AuthorityDashboard() {
                 onClick={() => handleEmergencyResponse('Security')}
                 data-testid="button-security-response"
               >
-                <Shield size={20} className="mb-1" />
-                <span className="text-xs">Security</span>
+                    <img src="/raksha-logo.png" alt="logo" className="object-contain w-full h-full mb-1" />
+                <span className="text-xs">{t('security')}</span>
               </Button>
               <Button
                 variant="outline"
@@ -155,7 +157,7 @@ export default function AuthorityDashboard() {
                 data-testid="button-send-alert"
               >
                 <Radio size={20} className="mb-1" />
-                <span className="text-xs">Send Alert</span>
+                <span className="text-xs">{t('send_alert')}</span>
               </Button>
               <Button
                 variant="outline"
@@ -164,7 +166,7 @@ export default function AuthorityDashboard() {
                 data-testid="button-redirect"
               >
                 <Route size={20} className="mb-1" />
-                <span className="text-xs">Redirect</span>
+                <span className="text-xs">{t('redirect')}</span>
               </Button>
             </div>
           </CardContent>

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft, User, CheckCircle, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface DigitalIdProps {
@@ -12,10 +13,11 @@ interface DigitalIdProps {
 export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
   const [, navigate] = useLocation();
 
-  const { data: tourist, isLoading } = useQuery({
+  const { data: tourist, isLoading } = useQuery<any>({
     queryKey: ["/api/tourists", touristId],
     enabled: !!touristId,
   });
+  const { t } = useI18n();
 
   const handleContinue = () => {
     onComplete();
@@ -27,7 +29,7 @@ export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading your digital ID...</p>
+          <p>{t('loading_digital_id')}</p>
         </div>
       </div>
     );
@@ -36,7 +38,7 @@ export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
   if (!tourist) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Tourist not found</p>
+        <p>{t('tourist_not_found')}</p>
       </div>
     );
   }
@@ -60,7 +62,7 @@ export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
           >
             <ArrowLeft size={20} />
           </Button>
-          <h1 className="text-lg font-semibold">Digital Travel ID</h1>
+          <h1 className="text-lg font-semibold">{t('digital_travel_id')}</h1>
           <div></div>
         </div>
         
@@ -73,12 +75,12 @@ export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
                 </div>
                 <div>
                   <h3 className="font-semibold" data-testid="tourist-name">{tourist.name}</h3>
-                  <p className="text-sm text-muted-foreground">Tourist ID Verified</p>
+                  <p className="text-sm text-muted-foreground">{t('tourist_id_verified')}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs">
                 <CheckCircle size={12} />
-                <span>Verified</span>
+                <span>{t('verified')}</span>
               </div>
             </div>
             
@@ -106,7 +108,7 @@ export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
                 <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
                   <div className="text-center">
                     <QrCode size={48} className="text-muted-foreground mb-2 mx-auto" />
-                    <p className="text-xs text-muted-foreground">Blockchain ID</p>
+                    <p className="text-xs text-muted-foreground">{t('blockchain_id')}</p>
                   </div>
                 </div>
               </div>
@@ -124,7 +126,7 @@ export default function DigitalId({ touristId, onComplete }: DigitalIdProps) {
           className="w-full bg-primary text-primary-foreground"
           data-testid="button-continue"
         >
-          Continue to Dashboard
+          {t('continue_to_dashboard')}
         </Button>
       </div>
     </div>
